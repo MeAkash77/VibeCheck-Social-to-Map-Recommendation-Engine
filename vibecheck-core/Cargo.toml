@@ -1,0 +1,37 @@
+[package]
+name        = "vibecheck-core"
+version.workspace   = true
+edition.workspace   = true
+license.workspace   = true
+readme.workspace    = true
+description = "Detect AI-generated code and attribute it to Claude, GPT, Gemini, Copilot, or Human"
+repository  = "https://github.com/o-k-a-y/vibecheck"
+keywords    = ["ai", "code-analysis", "static-analysis", "llm", "detection"]
+categories  = ["development-tools", "parser-implementations"]
+
+[features]
+default = []
+corpus  = ["dep:rusqlite"]
+
+[dependencies]
+serde.workspace      = true
+serde_json.workspace = true
+anyhow       = "1"
+ignore       = "0.4"
+toml         = "0.8"
+sha2         = "0.10"
+redb         = "2"
+dirs         = "5"
+tree-sitter          = "0.25"
+tree-sitter-rust     = "0.24"
+tree-sitter-python   = "0.25"
+tree-sitter-javascript = "0.23"
+tree-sitter-go       = "0.23"
+rusqlite = { version = "0.31", optional = true }
+
+[build-dependencies]
+toml  = "0.8"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3"

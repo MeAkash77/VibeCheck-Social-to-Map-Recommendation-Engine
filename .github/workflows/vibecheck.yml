@@ -1,0 +1,72 @@
+name: vibecheck
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  vibecheck:
+    name: "vibecheck: detect AI authorship"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload SVG assets
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: svg-assets
+          path: .github/assets/
+          retention-days: 1
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage report
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: false
+
+      - name: Enforce coverage gate
+        run: |
+          cargo llvm-cov --package vibecheck-core    --fail-under-lines 80
+          cargo llvm-cov --package vibecheck-ml      --fail-under-lines 80
+          cargo llvm-cov --package vibecheck-cli     --fail-under-lines 50
+
+      - name: Vibecheck source code
+        run: |
+          echo "Running vibecheck against its own source..."
+          echo ""
+          cargo run --release -p vibecheck-cli -- vibecheck-core/src/ --format text --assert-family claude,gpt,copilot,gemini,human --no-cache
+          echo ""
+          cargo run --release -p vibecheck-cli -- vibecheck-cli/src/ --format text --assert-family claude,gpt,copilot,gemini,human --no-cache
+          echo ""
+          echo "All files passed the vibe check."
